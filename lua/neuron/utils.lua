@@ -44,15 +44,15 @@ function M.feedraw(s)
   api.nvim_feedkeys(s, 'n', false)
 end
 
-local LINK_CHECK = "^%[%[%[?[A-Za-z0-9._%+-]+%]%]%]?$"
+local LINK_CHECK = "%[%[%[?[A-Za-z0-9._%+-]+%]%]%]?"
 local LINK = "[A-Za-z0-9._%+-]+"
 
 function M.match_link(s)
-  if s:match(LINK_CHECK) then return s:match(LINK) end
+  if s:match(LINK_CHECK) then return s:match(LINK_CHECK):match(LINK) end
 end
 
 function M.find_link(s)
-  if s:match(LINK_CHECK) then return s:match(LINK) end
+  if s:match(LINK_CHECK) then return s:find(LINK_CHECK) end
 end
 
 -- deletes a range of extmarks line wise, zero based index
