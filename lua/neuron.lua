@@ -80,35 +80,48 @@ function M.add_all_virtual_titles(buf)
 end
 
 function M.add_virtual_title_current_line(buf, ln, line)
+  local titles = {}
+  api.nvim_buf_clear_namespace(buf, ns, ln - 1, ln)
   if line ~= nil or line ~= "" then
-    local start_col, end_col = utils.find_link(line)
-    local id = utils.match_link(line)
-    if id ~= nil then
-      cmd.query_id(id, M.config.neuron_dir, function(json)
-        if json == nil then
-          return
-        end
+    local links = utils.gmatch_links(line)
+    for index, value in ipairs(links) do
+      local start_col, end_col, id = value[1], value[2], value[3]
 
-        if json.error then
-          return
-        end
+      if id ~= nil then
+        cmd.query_id(id, M.config.neuron_dir, function(json)
 
-        local title = json.result.zettelTitle
-        -- lua is one indexed
-        -- api.nvim_buf_set_virtual_text(buf, ns, ln - 1, {{title, "TabLineFill"}}, {})
-        api.nvim_buf_set_extmark(buf, ns, ln - 1, start_col - 1, {
-            end_col = end_col,
-            virt_text = {{title, "TabLineFill"}},
-            -- hl_group = "TabLineSel", -- might make neovim slow
-          })
-      end)
-    else
-      -- need because the user might do `norm! x` from a valid link
-      -- the link then becomes invalid so we need to remove it
-      utils.delete_range_extmark(buf, ns, ln - 1, ln) -- minus one to convert from 1 based index to api zero based index
+          if json == nil then
+            return
+          end
 
-      -- this also should work
-      -- api.nvim_buf_clear_namespace(buf, ns, ln - 1, ln)
+          if json.error then
+            return
+          end
+
+          titles[#titles+1] = { json.result.zettelTitle .. '; ', "Comment" }
+          -- lua is one indexed
+          -- api.nvim_buf_set_virtual_text(buf, ns, ln - 1, {{title, "TabLineFill"}}, {})
+          if #links == index then
+              api.nvim_buf_set_extmark(buf, ns, ln - 1, start_col - 1, {
+                end_col = end_col,
+                virt_text = titles
+                -- hl_group = "TabLineSel", -- might make neovim slow
+              })
+            else
+              api.nvim_buf_set_extmark(buf, ns, ln - 1, start_col - 1, {
+                end_col = end_col,
+                -- hl_group = "TabLineSel", -- might make neovim slow
+              })
+            end
+        end)
+      else
+        -- need because the user might do `norm! x` from a valid link
+        -- the link then becomes invalid so we need to remove it
+        utils.delete_range_extmark(buf, ns, ln - 1, ln) -- minus one to convert from 1 based index to api zero based index
+
+        -- this also should work
+        -- api.nvim_buf_clear_namespace(buf, ns, ln - 1, ln)
+      end
     end
   end
 end
@@ -226,6 +239,7 @@ function M.goto_next_extmark()
   tuple[1] = tuple[1] - 1 -- convert to zero based
 
   local extmarks = api.nvim_buf_get_extmarks(0, ns, {tuple[1], tuple[2] + 1}, -1, {}) -- plus one because we don't want the current extmark
+  -- for _, mark in ipairs(extmarks) do print(table.concat(mark, ", ")) end
 
   local next_extmark = extmarks[1]
   if next_extmark == nil then

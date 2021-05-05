@@ -51,6 +51,18 @@ function M.match_link(s)
   if s:match(LINK_CHECK) then return s:match(LINK_CHECK):match(LINK) end
 end
 
+function M.gmatch_links(s)
+  local links = {}
+  if s:match(LINK_CHECK) then
+    for link in s:gmatch(LINK_CHECK) do
+      local start_col, end_col = s:find(link, 1, true)
+      local id = s:match(LINK, start_col)
+      links[#links+1] = {start_col, end_col, id}
+    end
+  end
+  return links
+end
+
 function M.find_link(s)
   if s:match(LINK_CHECK) then return s:find(LINK_CHECK) end
 end
